@@ -7,57 +7,72 @@
 
 #include <new>
 #include <string.h>
+#include <assert.h>
 
-namespace RTTI
+namespace FiniteStateMachineMeta
 {
-	struct CRTTIBase
+	namespace RTTI
 	{
-		const char* (*GetClassName)();
-		int (*GetType)();
+		class CRTTIBase
+		{
+		public:
+			const char* (*GetClassName)();
+			int (*GetType)();
+		};
+
+		template<typename T>
+		class CRTTIInterface : public CRTTIBase
+		{
+		public:
+			typedef T Interface;
+		};
+
 	};
 
-	template<typename T>
-	struct CRTTIInterface : public CRTTIBase
-	{
-		typedef T Interface;
-	};
-
-};
+}
 
 #define INTERFACE_DECLARE_OPERATORS(InterFaceName) \
-	typedef RTTI::CRTTIInterface<InterFaceName> Parent;\
+public: \
+	typedef FiniteStateMachineMeta::RTTI::CRTTIInterface<InterFaceName> Parent;\
 	typedef Parent::Interface Interface;\
-	enum { depth = 0, };\
+	enum { DEPTH = 0, };\
 	\
 	void Construct(const char* (*p_szNameFunc)(), int(*p_dwGetTypeFunc)())\
 	{\
-		RTTI::CRTTIBase::GetClassName = p_szNameFunc;\
-		RTTI::CRTTIBase::GetType = p_dwGetTypeFunc;\
+		FiniteStateMachineMeta::RTTI::CRTTIBase::GetClassName = p_szNameFunc;\
+		FiniteStateMachineMeta::RTTI::CRTTIBase::GetType = p_dwGetTypeFunc;\
 	}\
 
 #define INSTANCE_DECLARE_OPERATORS(ParentName, InstanceName, Type) \
+public: \
 	typedef ParentName Parent;\
 	typedef Parent::Interface Interface;\
-	enum { depth = Parent::depth + 1, };\
+	enum { DEPTH = Parent::DEPTH + 1, };\
 	static const char* GetClassName() { return #InstanceName ; }\
 	static int GetType() { return Type; }\
 
+#define INTERFACE_FUNCTION(ReturnType, FunctionName, ...) \
+	class FunctionName \
+	{ \
+	public: \
+		virtual ReturnType operator()(##__VA_ARGS__) { assert(0); return ReturnType(); }; \
+	}; \
 
-struct Test1 : public RTTI::CRTTIInterface<Test1>
+class Test1 : public FiniteStateMachineMeta::RTTI::CRTTIInterface<Test1>
 {
 	INTERFACE_DECLARE_OPERATORS(Test1);
 
-	class TestFun
-	{
-	public:
-		virtual int operator()() { return 0; };
-		int a;
-	};
+	INTERFACE_FUNCTION(int, TestFun, int);
 
-	TestFun* tt1;
+	Test1(TestFun &ddd)
+	:func1(ddd)
+	{}
+
+	TestFun func;
+	TestFun& func1;
 };
 
-struct Test2 : public Test1
+class Test2 : public Test1
 {
 	INSTANCE_DECLARE_OPERATORS(Test1, Test2, 2);
 
@@ -77,7 +92,7 @@ private:
 	TestFun t2;
 };
 
-struct Test3 : public Test1
+class Test3 : public Test1
 {
 	INSTANCE_DECLARE_OPERATORS(Test1, Test3, 3);
 	
@@ -88,7 +103,7 @@ struct Test3 : public Test1
 
 };
 
-struct Test4 : public Test3
+class Test4 : public Test3
 {
 	INSTANCE_DECLARE_OPERATORS(Test3, Test4, 4);
 
@@ -96,23 +111,26 @@ struct Test4 : public Test3
 	{
 	public:
 		TestFun(Test4& ref) : refTest4(ref) {}
-		virtual int operator()()
+		virtual int operator()(int a)
 		{
 			refTest4.d = 30;
 			return refTest4.d;
 		}
-		int b;
+		int b = 0;
 
 		Test4& refTest4;
 	};
 
 	void Construct()
 	{
-		Interface::Construct(GetClassName, GetType);
-
 		//处理继承的方法
 		new(&t2) TestFun(*this);
-		Interface::tt1 = &t2;
+		//Interface::tt1 = &t2;
+
+		new((Interface*)this) Interface(t2);
+
+		Interface::Construct(GetClassName, GetType);
+
 	}
 
 	int d;
