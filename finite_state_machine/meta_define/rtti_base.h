@@ -52,11 +52,14 @@ public: \
 	static int GetType() { return Type; }\
 
 #define INTERFACE_FUNCTION(ReturnType, FunctionName, ...) \
+public: \
 	class FunctionName \
 	{ \
 	public: \
 		virtual ReturnType operator()(##__VA_ARGS__) { assert(0); return ReturnType(); }; \
 	}; \
+	FunctionName m_fo_##FunctionName; \
+	FunctionName& m_fref_##FunctionName; \
 
 class Test1 : public FiniteStateMachineMeta::RTTI::CRTTIInterface<Test1>
 {
@@ -66,6 +69,7 @@ class Test1 : public FiniteStateMachineMeta::RTTI::CRTTIInterface<Test1>
 
 	Test1(TestFun &ddd)
 	:func1(ddd)
+	,m_fref_TestFun(ddd)
 	{}
 
 	TestFun func;
