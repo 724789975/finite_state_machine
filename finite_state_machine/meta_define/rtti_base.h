@@ -16,6 +16,10 @@ namespace FiniteStateMachineMeta
 		class CRTTIBase
 		{
 		public:
+			CRTTIBase(const char* (*p_szNameFunc)(), int(*p_dwGetTypeFunc)()) 
+				: GetClassName(p_szNameFunc)
+				, GetType(p_dwGetTypeFunc) {}
+
 			const char* (*GetClassName)();
 			int (*GetType)();
 		};
@@ -24,6 +28,9 @@ namespace FiniteStateMachineMeta
 		class CRTTIInterface : public CRTTIBase
 		{
 		public:
+			CRTTIInterface(const char* (*p_szNameFunc)(), int(*p_dwGetTypeFunc)())
+				: CRTTIBase(p_szNameFunc, p_dwGetTypeFunc)
+			{}
 			typedef T Interface;
 		};
 
@@ -33,57 +40,114 @@ namespace FiniteStateMachineMeta
 
 #define INTERFACE_DECLARE_OPERATORS(InterFaceName) \
 public: \
-	typedef FiniteStateMachineMeta::RTTI::CRTTIInterface<InterFaceName> Parent;\
-	typedef Parent::Interface Interface;\
-	enum { DEPTH = 0, };\
+	typedef FiniteStateMachineMeta::RTTI::CRTTIInterface<InterFaceName> Parent; \
+	typedef Parent::Interface Interface; \
+	enum { DEPTH = 0, }; \
 	\
-	void Construct(const char* (*p_szNameFunc)(), int(*p_dwGetTypeFunc)())\
-	{\
-		FiniteStateMachineMeta::RTTI::CRTTIBase::GetClassName = p_szNameFunc;\
-		FiniteStateMachineMeta::RTTI::CRTTIBase::GetType = p_dwGetTypeFunc;\
-	}\
+	void Construct(const char* (*p_szNameFunc)(), int(*p_dwGetTypeFunc)()) \
+	{ \
+		FiniteStateMachineMeta::RTTI::CRTTIBase::GetClassName = p_szNameFunc; \
+		FiniteStateMachineMeta::RTTI::CRTTIBase::GetType = p_dwGetTypeFunc; \
+	} \
 
 #define INSTANCE_DECLARE_OPERATORS(ParentName, InstanceName, Type) \
 public: \
-	typedef ParentName Parent;\
-	typedef Parent::Interface Interface;\
-	enum { DEPTH = Parent::DEPTH + 1, };\
-	static const char* GetClassName() { return #InstanceName ; }\
-	static int GetType() { return Type; }\
+	typedef ParentName Parent; \
+	typedef Parent::Interface Interface; \
+	enum { DEPTH = Parent::DEPTH + 1, }; \
+	static const char* GetClassName() { return #InstanceName ; } \
+	static int GetType() { return Type; } \
 
-#define INTERFACE_FUNCTION(ReturnType, FunctionName, ...) \
+#define INTERFACE_FUNCTION_DECLEAR(ReturnType, FunctionName, ...) \
 public: \
-	class FunctionName \
+	class FunctionName##Interface \
 	{ \
 	public: \
-		virtual ReturnType operator()(##__VA_ARGS__) { assert(0); return ReturnType(); }; \
+		virtual ReturnType operator()(##__VA_ARGS__) = 0; \
 	}; \
-	FunctionName m_fo_##FunctionName; \
-	FunctionName& m_fref_##FunctionName; \
+	FunctionName##Interface& FunctionName; \
+
+#define INTERFACE_CONSTRUCT_BEGIN(Interface)\
+	Interface(const char* (*p_szNameFunc)(), int(*p_dwGetTypeFunc)()
+
+#define INTERFACE_CONSTRUCT_FUNCTION_BEGIN()\
+
+#define INTERFACE_CONSTRUCT_FUNCTION(ReturnType, FunctionName, ...)\
+	, FunctionName##Interface& ref_##FunctionName
+
+#define INTERFACE_CONSTRUCT_FUNCTION_END()\
+	)\
+	
+#define INTERFACE_CONSTRUCT_FUNCTION_PARAM_BEGIN()\
+		: Parent(p_szNameFunc, p_dwGetTypeFunc)
+
+#define INTERFACE_CONSTRUCT_FUNCTION_PARAM(ReturnType, FunctionName, ...)\
+		, FunctionName(ref_##FunctionName)
+
+#define INTERFACE_CONSTRUCT_FUNCTION_PARAM_END()\
+		{}
+
+#define INTERFACE_CONSTRUCT_END(Interface)\
+
+#define INSTANCE_OPERATOR_FUNCTION_DECLEAR_BEGIN(Instance, ReturnType, FunctionName, ...) \
+public: \
+	friend class FunctionName; \
+	class FunctionName : public Interface::FunctionName##Interface \
+	{ \
+	public: \
+		FunctionName(Instance& ref) : refThis(ref) {} \
+		virtual ReturnType operator()(##__VA_ARGS__); \
+		Instance& refThis; \
+
+#define INSTANCE_OPERATOR_FUNCTION_DECLEAR_END(Instance, ReturnType, FunctionName, ...) \
+	}; \
+	public: \
+	FunctionName m_o##FunctionName; \
+
+#define INSTANCE_OPERATOR_FUNCTION_DEFINE_BEGIN(Instance, ReturnType, FunctionName, ...) \
+	ReturnType Instance::FunctionName::operator()(__VA_ARGS__) \
+
+#define INSTANCE_OPERATOR_FUNCTION_DEFINE_END(Instance, ReturnType, FunctionName, ...) \
+
+#define INSTANCE_CONSTRUCT_OPERATOR(Instance, ReturnType, FunctionName, ...) \
+	new(&m_o##FunctionName) FunctionName(*this);
+
+#define INSTANCE_CONSTRUCT_BEGIN() \
+		new((Interface*)this) Interface(GetClassName, GetType
+
+#define INSTANCE_CONSTRUCT_FUNCTION(Instance, ReturnType, FunctionName, ...) \
+	, m_o##FunctionName
+
+#define INSTANCE_CONSTRUCT_END() \
+	);
 
 class Test1 : public FiniteStateMachineMeta::RTTI::CRTTIInterface<Test1>
 {
 	INTERFACE_DECLARE_OPERATORS(Test1);
 
-	INTERFACE_FUNCTION(int, TestFun, int);
+	INTERFACE_FUNCTION_DECLEAR(int, TestFun, int a);
+	INTERFACE_FUNCTION_DECLEAR(int, TestFun2, float a);
 
-	Test1(TestFun &ddd)
-	:func1(ddd)
-	,m_fref_TestFun(ddd)
-	{}
-
-	TestFun func;
-	TestFun& func1;
+	INTERFACE_CONSTRUCT_BEGIN(Test1)
+	INTERFACE_CONSTRUCT_FUNCTION_BEGIN()
+	INTERFACE_CONSTRUCT_FUNCTION(int, TestFun, int a)
+	INTERFACE_CONSTRUCT_FUNCTION(int, TestFun2, float a)
+	INTERFACE_CONSTRUCT_FUNCTION_END()
+	INTERFACE_CONSTRUCT_FUNCTION_PARAM_BEGIN()
+	INTERFACE_CONSTRUCT_FUNCTION_PARAM(int, TestFun, int a)
+	INTERFACE_CONSTRUCT_FUNCTION_PARAM(int, TestFun2, float a)
+	INTERFACE_CONSTRUCT_FUNCTION_PARAM_END()
+	INTERFACE_CONSTRUCT_END(Test1)
 };
 
 class Test2 : public Test1
 {
 	INSTANCE_DECLARE_OPERATORS(Test1, Test2, 2);
 
-	class TestFun : public Interface::TestFun
+	class TestFun : public Interface::TestFunInterface
 	{
 	public:
-		virtual int operator()() { return 0; }
+		virtual int operator()(int a) { return 0; }
 	};
 
 	void Construct()
@@ -111,36 +175,42 @@ class Test4 : public Test3
 {
 	INSTANCE_DECLARE_OPERATORS(Test3, Test4, 4);
 
-	class TestFun : public Interface::TestFun
-	{
-	public:
-		TestFun(Test4& ref) : refTest4(ref) {}
-		virtual int operator()(int a)
-		{
-			refTest4.d = 30;
-			return refTest4.d;
-		}
-		int b = 0;
+	INSTANCE_OPERATOR_FUNCTION_DECLEAR_BEGIN(Test4, int, TestFun, int a);
+	int b = 4;
+	INSTANCE_OPERATOR_FUNCTION_DECLEAR_END(Test4, int, TestFun, int a);
 
-		Test4& refTest4;
-	};
+	INSTANCE_OPERATOR_FUNCTION_DECLEAR_BEGIN(Test4, int, TestFun2, float a);
+	int b = 4;
+	INSTANCE_OPERATOR_FUNCTION_DECLEAR_END(Test4, int, TestFun2, float a);
 
 	void Construct()
 	{
 		//处理继承的方法
-		new(&t2) TestFun(*this);
-		//Interface::tt1 = &t2;
+		INSTANCE_CONSTRUCT_OPERATOR(Test4, int, TestFun, int a);
+		INSTANCE_CONSTRUCT_OPERATOR(Test4, int, TestFun2, float a);
 
-		new((Interface*)this) Interface(t2);
-
-		Interface::Construct(GetClassName, GetType);
-
+		INSTANCE_CONSTRUCT_BEGIN()
+		INSTANCE_CONSTRUCT_FUNCTION(Test4, int, TestFun, int a)
+		INSTANCE_CONSTRUCT_FUNCTION(Test4, int, TestFun2, float a)
+		INSTANCE_CONSTRUCT_END();
 	}
 
 	int d;
-
-	TestFun t2;
 };
+
+INSTANCE_OPERATOR_FUNCTION_DEFINE_BEGIN(Test4, int, TestFun, int a)
+{
+	refThis.d = 30;
+	return refThis.d;
+}
+INSTANCE_OPERATOR_FUNCTION_DEFINE_END(Test4, int, TestFun, int a);
+
+INSTANCE_OPERATOR_FUNCTION_DEFINE_BEGIN(Test4, int, TestFun2, float a)
+{
+	refThis.d = 30;
+	return refThis.d;
+}
+INSTANCE_OPERATOR_FUNCTION_DEFINE_END(Test4, int, TestFun, int a);
 
 union Content
 {

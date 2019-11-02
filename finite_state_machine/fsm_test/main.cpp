@@ -13,6 +13,6 @@ int main()
 
 	Content c;
 	c.t4.Construct();
-	c.t1.func1(1);
+	c.t1.TestFun(1);
 	return 0;
 }
