@@ -1,5 +1,6 @@
 #include "test.h"
 #include "rtti_base.h"
+#include "t_bit_set.h"
 
 const uint64_t& func1()
 {
@@ -7,12 +8,19 @@ const uint64_t& func1()
 	return a;
 }
 
+BeginEnumBitSet(ESecond)
+{
+	EnumMutexBitEnd(ESecond)
+	EnumCompatibleBitEnd(ESecond)
+	EndEnumBitSetWithCount(ESecond, 60)
+};
+
+EnumBitSet(ESecond);
+
 int main()
 {
-	bool b = func1() == 1;
+	BitSet::ESecondBitSet es;
+	
 
-	Content c;
-	c.t4.Construct();
-	c.t1.TestFun(1);
 	return 0;
 }
