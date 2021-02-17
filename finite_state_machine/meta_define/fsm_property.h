@@ -9,6 +9,10 @@
 
 #include <sstream>
 
+namespace FiniteStateMachine
+{
+}
+
 template<typename T, const char*(szName)()>
 class Property
 {

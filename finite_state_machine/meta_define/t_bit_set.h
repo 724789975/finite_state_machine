@@ -32,6 +32,7 @@ namespace BitSet\
 	class T##EnumName##BitSet<EnumName##Count> : public BitSet::BitSetInterface \
 	{\
 	public:\
+		typedef EnumName BitEnum;\
 		T##EnumName##BitSet(){memset(m_pData, 0, sizeof(m_pData));}\
 		virtual ~T##EnumName##BitSet(){}\
 		bool SetBit(unsigned int e, bool bValue)\
@@ -88,9 +89,6 @@ namespace BitSet\
 
 #define BeginEnumBitSet(EnumName) \
 enum EnumName
-
-#define EndEnumBitSet(EnumName) \
-EnumName##Count,
 
 #define EndEnumBitSetWithCount(EnumName, NUM) \
 EnumName##Count = NUM,

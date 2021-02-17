@@ -13,5 +13,24 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{2d01e5e1-dc58-41bf-82eb-196f463c3e36}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="state_adapt.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="state_data.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\state_adapt.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\state_data.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
