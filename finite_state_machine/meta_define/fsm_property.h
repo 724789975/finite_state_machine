@@ -13,41 +13,13 @@ namespace FiniteStateMachine
 {
 }
 
-template<typename T, const char*(szName)()>
+template<int N, const char*(szName)()>
 class Property
 {
 public:
-	typedef T TypeValue;
+	enum {State = N};
 	Property()
-		: m_bChanged(false)
 	{}
-	Property(const T& t)
-		: m_bChanged(false)
-		, m_tValue(t)
-	{}
-
-	bool Changed()const { return m_bChanged; }
-	void Changed(bool bChanged)
-	{
-		m_bChanged = bChanged;
-	}
-
-	T& Value()
-	{
-		return m_tValue;
-	}
-
-	Property<T, szName>& operator = (const T& refT)
-	{
-		m_tValue = refT;
-		m_bChanged = true;
-		return *this;
-	}
-
-	const T& Value()const
-	{
-		return m_tValue;
-	}
 
 	const char* Name()
 	{
@@ -56,7 +28,6 @@ public:
 
 private:
 	bool m_bChanged;
-	T m_tValue;
 };
 
 #define CommonPropertyDeclare(Type, Name) \
