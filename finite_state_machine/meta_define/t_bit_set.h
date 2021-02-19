@@ -32,8 +32,12 @@ namespace BitSet\
 	class T##EnumName##BitSet<EnumName##Count> : public BitSet::BitSetInterface \
 	{\
 	public:\
-		typedef EnumName BitEnum;\
-		T##EnumName##BitSet(){memset(m_pData, 0, sizeof(m_pData));}\
+		union Data\
+		{\
+			char szData[EnumName##Count / 8 + 1]; \
+			long long llData[EnumName##Count / 64 + 1];\
+		};\
+		T##EnumName##BitSet(){memset(&m_unionData, 0, sizeof(m_unionData));}\
 		virtual ~T##EnumName##BitSet(){}\
 		bool SetBit(unsigned int e, bool bValue)\
 		{\
@@ -43,11 +47,11 @@ namespace BitSet\
 			}\
 			if (bValue)\
 			{\
-				m_pData[e / 8] |= (1 << (e % 8));\
+				m_unionData.szData[e / 8] |= (1 << (e % 8));\
 			}\
 			else\
 			{\
-				m_pData[e / 8] &= ~(1 << (e % 8));\
+				m_unionData.szData[e / 8] &= ~(1 << (e % 8));\
 			}\
 			return true;\
 		}\
@@ -57,15 +61,27 @@ namespace BitSet\
 			{\
 				return false;\
 			}\
-			return (m_pData[e / 8] & (1 << (e % 8))) != 0;\
+			return (m_unionData.szData[e / 8] & (1 << (e % 8))) != 0;\
 		}\
 		unsigned int GetCount() const \
 		{\
 			return (unsigned int)EnumName##Count;\
 		}\
+		bool operator < (const T##EnumName##BitSet<EnumName##Count> & ref) const\
+		{\
+			for(unsigned int i = 0; i < sizeof(m_unionData.llData) / sizeof(m_unionData.llData[0]); ++i)\
+			{\
+				if (this->m_unionData.llData[i] < ref.m_unionData.llData[i]) return true;\
+			}\
+			return false;\
+		}\
+		bool operator == (const T##EnumName##BitSet<EnumName##Count> & ref) const\
+		{\
+			return !(*this < ref) && !(ref < *this);\
+		}\
 		void Reset()\
 		{\
-			memset(m_pData, 0, sizeof(m_pData));\
+			memset(&m_unionData, 0, sizeof(m_unionData));\
 		}\
 		void DumpInfo(std::ostream& refStream) const\
 		{\
@@ -82,7 +98,7 @@ namespace BitSet\
 			}\
 		}\
 	private:\
-		char m_pData[EnumName##Count / 8 + 1];\
+		Data m_unionData;\
 	};\
 	typedef T##EnumName##BitSet<EnumName##Count> EnumName##BitSet;\
 };
